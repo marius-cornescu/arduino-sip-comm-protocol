@@ -1,0 +1,21 @@
+{
+  "name": "ArtizanCommProtocol",
+  "description": "Communicate data between arduinos over the serial protocol",
+  "keywords": "serial, communication",
+  "authors":
+  {
+    "name": "Marius Cornescu"
+  },
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/ArtizanCommProtocol.git"
+  },
+  "version": "1.0.0",
+  "frameworks": [
+        "arduino",
+        "energia",
+        "wiringpi"
+  ],
+  "platforms": "*"
+}
