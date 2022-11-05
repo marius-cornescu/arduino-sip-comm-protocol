@@ -1,8 +1,6 @@
 #ifndef _HEADERFILE_COMM_PROTOCOL
 #define _HEADERFILE_COMM_PROTOCOL
 
-//#define ARRAY_LEN(array) (sizeof(array) / sizeof(array[0]))
-
 // Define message size in bytes
 #define MESSAGE_SIZE 12
 #define MESSAGE_RAW_SIZE 15  // MESSAGE_SIZE + 2 prefix + 1 end
@@ -32,101 +30,37 @@ void setValue1(byte value1);
 byte getValue2();
 void setValue2(byte value2);
 //==================================================================================================
-void __purgeDataLine(int maxToPurge, bool indiscriminate) {
-#ifdef DEBUG
-  Serial.print("Purge up to [");
-  Serial.print(maxToPurge);
-  Serial.println("]");
-#endif
-  byte purgeCount = 0;
-  char char1 = 0;
-  while (Serial.available() > 0 && purgeCount <= maxToPurge && (indiscriminate || (char1 != MESSAGE_END && char1 != MESSAGE_PREFIX1))) {
-    char1 = Serial.read();
-#ifdef DEBUG
-    Serial.println(char1, DEC);
-#endif
-    purgeCount = purgeCount + 1;
-  }
-#ifdef DEBUG
-  if (purgeCount > 0) {
-    Serial.print("PURGED: [");
-    Serial.print(purgeCount);
-    Serial.println("]");
-  }
-#endif
-}
-//==================================================================================================
-bool __isValidMessage() {
-  char char1 = Serial.read();
-  if (char1 == MESSAGE_END) {
-    char1 = Serial.read();
-  }
-  if (char1 == MESSAGE_PREFIX2) {
-    return true;
-  }
-  char char2 = Serial.read();
-#ifdef DEBUG
-  Serial.print("char1: [");
-  Serial.print(char1, DEC);
-  Serial.print("] char2: [");
-  Serial.print(char2, DEC);
-  Serial.println("]");
-#endif
-  return (char1 == MESSAGE_PREFIX1 && char2 == MESSAGE_PREFIX2);
-}
-//==================================================================================================
-int receiveData() {
-  int rlen = 0;
-  int available = Serial.available();
-  if (available > MESSAGE_SIZE) {
-    if (__isValidMessage()) {
-      // read the incoming bytes:
-      rlen = Serial.readBytesUntil(MESSAGE_END, messageIn, MESSAGE_SIZE);
 
-      // prints the received data
-#ifdef DEBUG
-      Serial.print("I received: ");
-      for (int i = 0; i < rlen; i++) {
-        Serial.print(messageIn[i]);
-      }
-#endif
-    } else {
-      if (available > 2 * MESSAGE_RAW_SIZE) {
-        __purgeDataLine(available - MESSAGE_RAW_SIZE - 2, true);
-      }
-      __purgeDataLine(MESSAGE_RAW_SIZE / 2, false);
-    }
-  }
-  return rlen;
-}
-//==================================================================================================
-void newMessage(char *data, char commandCode, char *payload, byte payloadSize) {
-  memset(data, 0, MESSAGE_SIZE);
-  data[MESSAGE_COMMAND_CODE_INDEX] = commandCode;
-  memcpy(&data[MESSAGE_PAYLOAD_START_INDEX], &payload[0], payloadSize);
-}
-//==================================================================================================
-bool sendMessage(char *data) {
-  if (Serial.availableForWrite() < MESSAGE_SIZE + 3) {
-    return false;
-  }
-  Serial.write(MESSAGE_PREFIX1);
-  Serial.write(MESSAGE_PREFIX2);
-  Serial.write(data, MESSAGE_SIZE);
-  Serial.write(MESSAGE_END);
-  return true;
-}
-//==================================================================================================
 
-bool haveToPublish = false; // have to inform 3rd party (not partner)
-byte lastCommand[MESSAGE_SIZE];
+class RtznCommProtocol {
 
-void commActOnPushMessage();
-void commActOnPollMessage();
-void commActOnPushPollMessage();
+  public:
+    RtznCommProtocol();
 
-// debugging
-void printMessage(const char *prefix, const char *label, char *data, int size);
+    char messageIn[MESSAGE_SIZE];
+
+    int receiveData();
+    void newMessage(char *data, char commandCode, char *payload, byte payloadSize);
+    bool sendMessage(char *data);
+
+
+
+    
+    void switchOff(const char* sGroup, int nSwitchNumber);
+    #if not defined( ArtizanCommProtocolDisableReceiving )
+    void setReceiveTolerance(int nPercent);
+    #endif
+
+  private:
+    void __purgeDataLine(int maxToPurge, bool indiscriminate);
+    bool __isValidMessage();
+
+    bool haveToPublish;
+
+    #if not defined( ArtizanCommProtocolDisableReceiving )
+    static void handleInterrupt();
+    #endif
+};
 
 
 //==================================================================================================
@@ -196,7 +130,6 @@ void commActOnPollMessage() {
   char payload[] = { (char)getValue1(), (char)getValue2() };
   newMessage(message, COMMAND_PUSH, payload, 2);
   sendMessage(message);
-  memcpy(lastCommand, message, MESSAGE_SIZE);
 
   printMessage(COMM_ROLE, ": Sent", message, MESSAGE_SIZE);
 }
