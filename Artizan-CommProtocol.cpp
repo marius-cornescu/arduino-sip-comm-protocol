@@ -74,7 +74,7 @@ void RtznCommProtocol::actOnPushMessage() {
     /* The PARTNER is informing me of a status change */
     this->__logDebug("actOnPushMessage:");
 
-    this->haveToPublish = this->_ProcessReceivedMessageFunction(this->messageIn);
+    this->haveToPublish = this->_ProcessReceivedMessageFunction(&this->messageIn[RtznCommProtocol::_msgPayloadStartIndex]);
 }
 //==================================================================================================
 void RtznCommProtocol::actOnPollMessage() {
