@@ -32,7 +32,10 @@ RtznCommProtocol::RtznCommProtocol(const char *nodeRole) {
     this->haveToPublish = false; // have to inform 3rd party (not partner)
 }
 //ooooooooooooooooooooooooooo
-RtznCommProtocol::RtznCommProtocol(const char *nodeRole, bool (*ProcessReceivedMessageFunction)(String), String (*PrepareMessageToSendFunction)()) {
+RtznCommProtocol::RtznCommProtocol(const char *nodeRole, 
+        bool (*ProcessReceivedMessageFunction)(const char *), 
+        const char* (*PrepareMessageToSendFunction)()
+    ) {
     this->nodeRole = nodeRole;
     this->_ProcessReceivedMessageFunction = ProcessReceivedMessageFunction;
     this->_PrepareMessageToSendFunction = PrepareMessageToSendFunction;
@@ -71,13 +74,7 @@ void RtznCommProtocol::actOnPushMessage() {
     /* The PARTNER is informing me of a status change */
     this->__logDebug("actOnPushMessage:");
 
-    if (setValue1(this->messageIn[RtznCommProtocol::_msgPayloadStartIndex])) {
-        this->haveToPublish = true;
-    }
-
-    if (setValue2(this->messageIn[RtznCommProtocol::_msgPayloadStartIndex + 1])) {
-        this->haveToPublish = true;
-    }
+    this->haveToPublish = this->_ProcessReceivedMessageFunction(this->messageIn);
 }
 //==================================================================================================
 void RtznCommProtocol::actOnPollMessage() {
@@ -86,12 +83,9 @@ void RtznCommProtocol::actOnPollMessage() {
     this->__logDebug("actOnPollMessage: Send data to PARTNER");
 
     // Send data to PARTNER
-    char message[RtznCommProtocol::_msgSize];
-    String payload = this->_PrepareMessageToSendFunction();
-    this->newMessage(message, RtznCommProtocol::_Command_PUSH, payload.begin(), payload.length());
-    this->sendMessage(message);
-
-    this->__logDebugMessage("Sent", message);
+    const char* payload = this->_PrepareMessageToSendFunction();
+    byte payloadSize = sizeof(payload) / sizeof(char);
+    this->sendMessage(RtznCommProtocol::_Command_PUSH, payload, payloadSize);
 }
 //==================================================================================================
 void RtznCommProtocol::actOnPushPollMessage() {
@@ -140,24 +134,28 @@ int RtznCommProtocol::receiveData() {
     return rlen;
 }
 //==================================================================================================
-void RtznCommProtocol::newMessage(char *data, char commandCode, char *payload, byte payloadSize) {
-  memset(data, 0, RtznCommProtocol::_msgSize);
-  data[RtznCommProtocol::_msgCommandCodeIndex] = commandCode;
-  memcpy(&data[RtznCommProtocol::_msgPayloadStartIndex], &payload[0], payloadSize);
-}
-//==================================================================================================
-bool RtznCommProtocol::sendMessage(char *data) {
-  if (Serial.availableForWrite() < RtznCommProtocol::_msgRawSize) {
-    return false;
-  }
-  Serial.write(RtznCommProtocol::_MsgPrefix1);
-  Serial.write(RtznCommProtocol::_MsgPrefix2);
-  Serial.write(data, RtznCommProtocol::_msgSize);
-  Serial.write(RtznCommProtocol::_MsgEnd);
-  return true;
-}
-//==================================================================================================
+bool RtznCommProtocol::sendMessage(char commandCode, const char *payload, byte payloadSize) {
+    char message[RtznCommProtocol::_msgSize];
 
+    memset(message, 0, RtznCommProtocol::_msgSize);
+    message[RtznCommProtocol::_msgCommandCodeIndex] = commandCode;
+    memcpy(&message[RtznCommProtocol::_msgPayloadStartIndex], &payload[0], payloadSize);
+
+    if (Serial.availableForWrite() < RtznCommProtocol::_msgRawSize) {
+        this->__logDebug("NOTHING Sent, line is busy");
+        return false;
+    }
+
+    Serial.write(RtznCommProtocol::_MsgPrefix1);
+    Serial.write(RtznCommProtocol::_MsgPrefix2);
+    Serial.write(message, RtznCommProtocol::_msgSize);
+    Serial.write(RtznCommProtocol::_MsgEnd);
+
+    this->__logDebugMessage("Sent", message);
+
+    return true;
+}
+//==================================================================================================
 
 
 //==================================================================================================
@@ -172,12 +170,12 @@ void RtznCommProtocol::purgeDataLine(int maxToPurge, bool indiscriminate) {
     while (Serial.available() > 0 && purgeCount <= maxToPurge && (indiscriminate || (char1 != RtznCommProtocol::_MsgEnd && char1 != RtznCommProtocol::_MsgPrefix1))) {
         char1 = Serial.read();
         purgeCount = purgeCount + 1;
-#ifdef DEBUG_COMM_PROTOCOL
-        DEBUG_OUT_COMM_PROTO.println(char1, DEC);
+#ifdef COMM_PROTO_PRINT
+        COMM_PROTO_PRINT.println(char1, DEC);
 #endif
     }
 
-#ifdef DEBUG_COMM_PROTOCOL
+#ifdef COMM_PROTO_PRINT
     if (purgeCount > 0) {
         this->__logDebug("Purged:", purgeCount);
     }
@@ -197,64 +195,64 @@ bool RtznCommProtocol::isValidMessage() {
   }
   char char2 = Serial.read();
 
-#ifdef DEBUG_COMM_PROTOCOL
-  DEBUG_OUT_COMM_PROTO.print("char1: [");
-  DEBUG_OUT_COMM_PROTO.print(char1, DEC);
-  DEBUG_OUT_COMM_PROTO.print("] char2: [");
-  DEBUG_OUT_COMM_PROTO.print(char2, DEC);
-  DEBUG_OUT_COMM_PROTO.println("]");
+#ifdef COMM_PROTO_PRINT
+  COMM_PROTO_PRINT.print("char1: [");
+  COMM_PROTO_PRINT.print(char1, DEC);
+  COMM_PROTO_PRINT.print("] char2: [");
+  COMM_PROTO_PRINT.print(char2, DEC);
+  COMM_PROTO_PRINT.println("]");
 #endif
 
   return (char1 == RtznCommProtocol::_MsgPrefix1 && char2 == RtznCommProtocol::_MsgPrefix2);
 }
 //==================================================================================================
 void RtznCommProtocol::__logDebug(const char *label) {
-#ifdef DEBUG_COMM_PROTOCOL
-  DEBUG_OUT_COMM_PROTO.print(this->nodeRole);
-  DEBUG_OUT_COMM_PROTO.print(": ");
-  DEBUG_OUT_COMM_PROTO.println(label);
+#ifdef COMM_PROTO_PRINT
+  COMM_PROTO_PRINT.print(this->nodeRole);
+  COMM_PROTO_PRINT.print(": ");
+  COMM_PROTO_PRINT.println(label);
 #endif
 }
 //==================================================================================================
 void RtznCommProtocol::__logDebug(const char *label1, int label2) {
-#ifdef DEBUG_COMM_PROTOCOL
-  DEBUG_OUT_COMM_PROTO.print(this->nodeRole);
-  DEBUG_OUT_COMM_PROTO.print(": ");
-  DEBUG_OUT_COMM_PROTO.print(label1);
-  DEBUG_OUT_COMM_PROTO.print(" [");
-  DEBUG_OUT_COMM_PROTO.print(label2);
-  DEBUG_OUT_COMM_PROTO.println("]");
+#ifdef COMM_PROTO_PRINT
+  COMM_PROTO_PRINT.print(this->nodeRole);
+  COMM_PROTO_PRINT.print(": ");
+  COMM_PROTO_PRINT.print(label1);
+  COMM_PROTO_PRINT.print(" [");
+  COMM_PROTO_PRINT.print(label2);
+  COMM_PROTO_PRINT.println("]");
 #endif
 }
 //==================================================================================================
 void RtznCommProtocol::__logDebugMessage(const char *label, char *message) {
-#ifdef DEBUG_COMM_PROTOCOL
-  DEBUG_OUT_COMM_PROTO.print(this->nodeRole);
-  DEBUG_OUT_COMM_PROTO.print(": ");
-  DEBUG_OUT_COMM_PROTO.print(label);
-  DEBUG_OUT_COMM_PROTO.print(" [0x");
-  DEBUG_OUT_COMM_PROTO.print(message[RtznCommProtocol::_msgCommandCodeIndex], HEX);
-  DEBUG_OUT_COMM_PROTO.print("](");
-  DEBUG_OUT_COMM_PROTO.print(message[RtznCommProtocol::_msgPayloadStartIndex], DEC);
-  DEBUG_OUT_COMM_PROTO.print(")\t[");
+#ifdef COMM_PROTO_PRINT
+  COMM_PROTO_PRINT.print(this->nodeRole);
+  COMM_PROTO_PRINT.print(": ");
+  COMM_PROTO_PRINT.print(label);
+  COMM_PROTO_PRINT.print(" [0x");
+  COMM_PROTO_PRINT.print(message[RtznCommProtocol::_msgCommandCodeIndex], HEX);
+  COMM_PROTO_PRINT.print("](");
+  COMM_PROTO_PRINT.print(message[RtznCommProtocol::_msgPayloadStartIndex], DEC);
+  COMM_PROTO_PRINT.print(")\t[");
   for (int i = RtznCommProtocol::_msgPayloadStartIndex; i < RtznCommProtocol::_msgSize; i++) {
-    DEBUG_OUT_COMM_PROTO.print((char)message[i]);
-    DEBUG_OUT_COMM_PROTO.print("|");
+    COMM_PROTO_PRINT.print((char)message[i]);
+    COMM_PROTO_PRINT.print("|");
   }
-  DEBUG_OUT_COMM_PROTO.println("]");
+  COMM_PROTO_PRINT.println("]");
 #endif
 }
 //==================================================================================================
 void RtznCommProtocol::__logDebugRawMessage(const char *label, char *message, int messageSize) {
-#ifdef DEBUG_COMM_PROTOCOL
-  DEBUG_OUT_COMM_PROTO.print(this->nodeRole);
-  DEBUG_OUT_COMM_PROTO.print(": ");
-  DEBUG_OUT_COMM_PROTO.print(label);
-  DEBUG_OUT_COMM_PROTO.print(" [");
+#ifdef COMM_PROTO_PRINT
+  COMM_PROTO_PRINT.print(this->nodeRole);
+  COMM_PROTO_PRINT.print(": ");
+  COMM_PROTO_PRINT.print(label);
+  COMM_PROTO_PRINT.print(" [");
   for (int i = 0; i < messageSize; i++) {
-    DEBUG_OUT_COMM_PROTO.print((char)message[i]);
+    COMM_PROTO_PRINT.print((char)message[i]);
   }
-  DEBUG_OUT_COMM_PROTO.println("]");
+  COMM_PROTO_PRINT.println("]");
 #endif
 }
 //==================================================================================================

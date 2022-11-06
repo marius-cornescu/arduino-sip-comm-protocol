@@ -7,11 +7,8 @@
 #ifndef _HEADERFILE_COMM_PROTOCOL
 #define _HEADERFILE_COMM_PROTOCOL
 //= DEFINES ========================================================================================
-// Uncomment for library debugging
-//#define DEBUG_COMM_PROTOCOL
-
-// Define where debug output will be printed.
-#define DEBUG_OUT_COMM_PROTO Serial
+// Uncomment for library debugging // Define where debug output will be printed.
+//#define COMM_PROTO_PRINT Serial
 
 //= INCLUDES =======================================================================================
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -26,19 +23,13 @@
 // Define message size in bytes
 const byte MESSAGE_SIZE = 12;
 
-//= VARIABLES ======================================================================================
-byte getValue1();
-bool setValue1(byte value1);
-byte getValue2();
-bool setValue2(byte value2);
-
 //==================================================================================================
 
 class RtznCommProtocol {
 
   public:
     RtznCommProtocol(const char *nodeRole);
-    RtznCommProtocol(const char *nodeRole, bool (*ProcessReceivedMessageFunction)(String), String (*PrepareMessageToSendFunction)());
+    RtznCommProtocol(const char *nodeRole, bool (*ProcessReceivedMessageFunction)(const char *), const char* (*PrepareMessageToSendFunction)());
 
     bool hasMessageInInboxThenReadMessage();
 
@@ -50,18 +41,17 @@ class RtznCommProtocol {
     bool isHaveToPublish();
     void setHaveToPublish(bool haveToPublish);
 
-    byte getMessageSize();
+    byte getMessageSize(); // ??
 
   private:
     int receiveData();
-    void newMessage(char *data, char commandCode, char *payload, byte payloadSize);
-    bool sendMessage(char *data);
+    bool sendMessage(char commandCode, const char *payload, byte payloadSize);
 
     void purgeDataLine(int maxToPurge, bool indiscriminate);
     bool isValidMessage();
 
-    bool (*_ProcessReceivedMessageFunction)(String){};
-    String (*_PrepareMessageToSendFunction)(){};
+    bool (*_ProcessReceivedMessageFunction)(const char *){};
+    const char* (*_PrepareMessageToSendFunction)(){};
 
     // debugging
     void __logDebug(const char *label);
