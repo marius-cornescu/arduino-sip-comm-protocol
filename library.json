@@ -9,7 +9,7 @@
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/ArtizanCommProtocol.git"
+    "url": "https://github.com/marius-cornescu/arduino-sip_comm_protocol.git"
   },
   "version": "1.0.0",
   "frameworks": [
