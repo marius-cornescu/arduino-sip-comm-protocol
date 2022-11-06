@@ -1,3 +1,9 @@
+/*
+  ArtizanCommProtocol - Arduino libary for custom communication
+  Copyright (c) 2022 Marius Cornescu.  All right reserved.
+  
+  Project home: https://github.com/marius-cornescu/arduino-sip_comm_protocol
+*/
 #ifndef _HEADERFILE_COMM_PROTOCOL
 #define _HEADERFILE_COMM_PROTOCOL
 
@@ -32,9 +38,9 @@ const char COMMAND_PUSH_POLL = 40;  // INFORM PARTNER AND REQUEST UPDATE
 //
 //= VARIABLES ======================================================================================
 byte getValue1();
-void setValue1(byte value1);
+bool setValue1(byte value1);
 byte getValue2();
-void setValue2(byte value2);
+bool setValue2(byte value2);
 //==================================================================================================
 
 
@@ -48,10 +54,10 @@ class RtznCommProtocol {
 
     bool hasMessageInInboxThenReadMessage();
 
-    void commActOnMessage();
-    void commActOnPushMessage();
-    void commActOnPollMessage();
-    void commActOnPushPollMessage();
+    void actOnMessage();
+    void actOnPushMessage();
+    void actOnPollMessage();
+    void actOnPushPollMessage();
 
     bool isHaveToPublish();
     void setHaveToPublish(bool haveToPublish);

@@ -33,39 +33,35 @@ bool RtznCommProtocol::hasMessageInInboxThenReadMessage() {
     }
 }
 //==================================================================================================
-void RtznCommProtocol::commActOnMessage() {
-    this->__logDebug("commActOnMessage");
+void RtznCommProtocol::actOnMessage() {
+    this->__logDebug("actOnMessage");
 
     switch (this->messageIn[MESSAGE_COMMAND_CODE_INDEX]) {
         case COMMAND_NOP: /*DO NOTHING*/ break;
-        case COMMAND_PUSH: this->commActOnPushMessage(); break;
-        case COMMAND_POLL: this->commActOnPollMessage(); break;
-        case COMMAND_PUSH_POLL: this->commActOnPushPollMessage(); break;
+        case COMMAND_PUSH: this->actOnPushMessage(); break;
+        case COMMAND_POLL: this->actOnPollMessage(); break;
+        case COMMAND_PUSH_POLL: this->actOnPushPollMessage(); break;
         default: /*UNKNOWN*/ break;
     }
 }
 //==================================================================================================
-void RtznCommProtocol::commActOnPushMessage() {
+void RtznCommProtocol::actOnPushMessage() {
     /* The PARTNER is informing me of a status change */
-    this->__logDebug("commActOnPushMessage:");
+    this->__logDebug("actOnPushMessage:");
 
-    byte newVentSpeed = this->messageIn[MESSAGE_PAYLOAD_START_INDEX];
-    if (newVentSpeed != getValue1()) {
-        setValue1(newVentSpeed);
+    if (setValue1(this->messageIn[MESSAGE_PAYLOAD_START_INDEX])) {
         this->haveToPublish = true;
     }
 
-    byte newActionCode = this->messageIn[MESSAGE_PAYLOAD_START_INDEX + 1];
-    if (newActionCode != getValue2()) {
-        setValue2(newActionCode);
+    if (setValue2(this->messageIn[MESSAGE_PAYLOAD_START_INDEX + 1])) {
         this->haveToPublish = true;
     }
 }
 //==================================================================================================
-void RtznCommProtocol::commActOnPollMessage() {
+void RtznCommProtocol::actOnPollMessage() {
     /* The PARTNER is asking for my status */
     /* The body of the request is empty */
-    this->__logDebug("commActOnPollMessage: Send data to PARTNER");
+    this->__logDebug("actOnPollMessage: Send data to PARTNER");
 
     // Send data to PARTNER
     char message[MESSAGE_SIZE];
@@ -76,11 +72,11 @@ void RtznCommProtocol::commActOnPollMessage() {
     this->__logMessage("Sent", message);
 }
 //==================================================================================================
-void RtznCommProtocol::commActOnPushPollMessage() {
+void RtznCommProtocol::actOnPushPollMessage() {
     /* The PARTNER is informing me of a status change */
-    this->commActOnPushMessage();
+    this->actOnPushMessage();
     /* The PARTNER is asking for my status */
-    this->commActOnPollMessage();
+    this->actOnPollMessage();
 }
 //==================================================================================================
 
@@ -154,10 +150,10 @@ void RtznCommProtocol::__purgeDataLine(int maxToPurge, bool indiscriminate) {
     char char1 = 0;
     while (Serial.available() > 0 && purgeCount <= maxToPurge && (indiscriminate || (char1 != MESSAGE_END && char1 != MESSAGE_PREFIX1))) {
         char1 = Serial.read();
+        purgeCount = purgeCount + 1;
 #ifdef DEBUG
         Serial.println(char1, DEC);
 #endif
-        purgeCount = purgeCount + 1;
     }
 #ifdef DEBUG
     if (purgeCount > 0) {
