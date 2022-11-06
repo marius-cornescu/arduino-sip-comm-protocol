@@ -6,7 +6,14 @@
 */
 #ifndef _HEADERFILE_COMM_PROTOCOL
 #define _HEADERFILE_COMM_PROTOCOL
+//= DEFINES ========================================================================================
+// Uncomment for library debugging
+//#define DEBUG_COMM_PROTOCOL
 
+// Define where debug output will be printed.
+#define DEBUG_OUT_COMM_PROTO Serial
+
+//= INCLUDES =======================================================================================
 #if defined(ARDUINO) && ARDUINO >= 100
     #include "Arduino.h"
 #else
@@ -15,42 +22,23 @@
 
 #include <stdint.h>
 
+//= CONSTANTS ======================================================================================
 // Define message size in bytes
 const byte MESSAGE_SIZE = 12;
-const byte MESSAGE_RAW_SIZE = 15;  // MESSAGE_SIZE + 2 prefix + 1 end
 
-const byte MESSAGE_COMMAND_CODE_INDEX = 0;
-const byte MESSAGE_PAYLOAD_START_INDEX = 1;
-
-//= CONSTANTS ======================================================================================
-//------------------------------------------------
-const char MESSAGE_PREFIX1 = 254; // &thorn; character
-const char MESSAGE_PREFIX2 = 252; // &uuml; character
-const char MESSAGE_END = '\n';    // EOL character
-
-const char COMMAND_MAX_VALID = 90;  // any command with higher value will be ignored
-//
-const char COMMAND_NOP = 99;
-//
-const char COMMAND_POLL = 20;       // REQUEST UPDATE FROM PARNER
-const char COMMAND_PUSH = 30;       // INFORM PARTNER
-const char COMMAND_PUSH_POLL = 40;  // INFORM PARTNER AND REQUEST UPDATE
-//
 //= VARIABLES ======================================================================================
 byte getValue1();
 bool setValue1(byte value1);
 byte getValue2();
 bool setValue2(byte value2);
-//==================================================================================================
 
+//==================================================================================================
 
 class RtznCommProtocol {
 
   public:
-    RtznCommProtocol();
     RtznCommProtocol(const char *nodeRole);
-
-    char messageIn[MESSAGE_SIZE];
+    RtznCommProtocol(const char *nodeRole, bool (*ProcessReceivedMessageFunction)(String), String (*PrepareMessageToSendFunction)());
 
     bool hasMessageInInboxThenReadMessage();
 
@@ -62,30 +50,43 @@ class RtznCommProtocol {
     bool isHaveToPublish();
     void setHaveToPublish(bool haveToPublish);
 
-    //#if not defined( ArtizanCommProtocolDisableReceiving )
-    //void setReceiveTolerance(int nPercent);
-    //#endif
+    byte getMessageSize();
 
   private:
     int receiveData();
     void newMessage(char *data, char commandCode, char *payload, byte payloadSize);
     bool sendMessage(char *data);
 
-    void __purgeDataLine(int maxToPurge, bool indiscriminate);
-    bool __isValidMessage();
+    void purgeDataLine(int maxToPurge, bool indiscriminate);
+    bool isValidMessage();
+
+    bool (*_ProcessReceivedMessageFunction)(String){};
+    String (*_PrepareMessageToSendFunction)(){};
 
     // debugging
     void __logDebug(const char *label);
     void __logDebug(const char *label1, int label2);
+    void __logDebugMessage(const char *label, char *message);
+    void __logDebugRawMessage(const char *label, char *message, int messageSize);
 
-    void __logMessage(const char *label, char *message);
-
+    char messageIn[MESSAGE_SIZE];
     bool haveToPublish;
     const char *nodeRole;
 
-    //#if not defined( ArtizanCommProtocolDisableReceiving )
-    //static void handleInterrupt();
-    //#endif
+    //= CONSTANTS ================================
+    static byte _msgSize;
+    static byte _msgRawSize;
+    static byte _msgCommandCodeIndex;
+    static byte _msgPayloadStartIndex;
+
+    static const char _MsgPrefix1;
+    static const char _MsgPrefix2;
+    static const char _MsgEnd;
+
+    static const char _Command_NOP;
+    static const char _Command_POLL;
+    static const char _Command_PUSH;
+    static const char _Command_PUSH_POLL;
 };
 
 #endif  // _HEADERFILE_COMM_PROTOCOL
