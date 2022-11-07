@@ -7,8 +7,18 @@
 #ifndef _HEADERFILE_COMM_PROTOCOL
 #define _HEADERFILE_COMM_PROTOCOL
 //= DEFINES ========================================================================================
-// Uncomment for library debugging // Define where debug output will be printed.
-//#define COMM_PROTO_PRINT Serial
+// Uncomment/Define for library debugging
+#define DEBUG_COMM_PROTO
+
+#define COMM_PROTO_PRINTER Serial
+
+#ifdef DEBUG_COMM_PROTO
+	#define DBG_PRINT(...) { COMM_PROTO_PRINTER.print(__VA_ARGS__); }
+	#define DBG_PRINTLN(...) { COMM_PROTO_PRINTER.println(__VA_ARGS__); }
+#else
+	#define DBG_PRINT(...) {}
+	#define DBG_PRINTLN(...) {}
+#endif
 
 //= INCLUDES =======================================================================================
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -21,15 +31,15 @@
 
 //= CONSTANTS ======================================================================================
 // Define message size in bytes
-const byte MESSAGE_SIZE = 12;
+const byte MESSAGE_SIZE = 17;
 
 //==================================================================================================
 
 class RtznCommProtocol {
 
   public:
-    RtznCommProtocol(const char *nodeRole);
-    RtznCommProtocol(const char *nodeRole, bool (*ProcessReceivedMessageFunction)(const char *), const char* (*PrepareMessageToSendFunction)());
+    RtznCommProtocol(Stream& _port, const char *nodeRole);
+    RtznCommProtocol(Stream& _port, const char *nodeRole, bool (*ProcessReceivedMessageFunction)(const char *), const char* (*PrepareMessageToSendFunction)());
 
     bool hasMessageInInboxThenReadMessage();
 
@@ -41,11 +51,12 @@ class RtznCommProtocol {
     bool isHaveToPublish();
     void setHaveToPublish(bool haveToPublish);
 
-    byte getMessageSize(); // ??
-
   private:
     int receiveData();
     bool sendMessage(char commandCode, const char *payload, byte payloadSize);
+
+    const char* encodePayload(const char *payload, byte payloadSize);
+    const char* decodePayload(const char *payload, byte payloadSize);
 
     void purgeDataLine(int maxToPurge, bool indiscriminate);
     bool isValidMessage();
@@ -59,11 +70,13 @@ class RtznCommProtocol {
     void __logDebugMessage(const char *label, char *message);
     void __logDebugRawMessage(const char *label, char *message, int messageSize);
 
+    Stream* port;
     char messageIn[MESSAGE_SIZE];
     bool haveToPublish;
     const char *nodeRole;
 
     //= CONSTANTS ================================
+    static byte _maxPayloadSize;
     static byte _msgSize;
     static byte _msgRawSize;
     static byte _msgCommandCodeIndex;
@@ -72,6 +85,8 @@ class RtznCommProtocol {
     static const char _MsgPrefix1;
     static const char _MsgPrefix2;
     static const char _MsgEnd;
+
+    static byte _MsgAsciiShift;
 
     static const char _Command_NOP;
     static const char _Command_POLL;
