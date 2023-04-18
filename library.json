@@ -1,21 +1,21 @@
 {
-  "name": "ArtizanCommProtocol",
-  "description": "Communicate data between arduinos over the serial protocol",
-  "keywords": "serial, communication",
-  "authors":
-  {
-    "name": "Marius Cornescu"
-  },
-  "repository":
-  {
-    "type": "git",
-    "url": "https://github.com/marius-cornescu/arduino-sip_comm_protocol.git"
-  },
-  "version": "2.0.0",
-  "frameworks": [
-        "arduino",
-        "energia",
-        "wiringpi"
-  ],
-  "platforms": "*"
+    "name": "RtznCommProtocol",
+    "description": "Communicate data between arduinos over the serial protocol",
+    "keywords": "serial, communication",
+    "authors": {
+      "name": "Marius Cornescu"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/marius-cornescu/arduino-sip_comm_protocol.git"
+    },
+    "version": "2.1.0",
+    "exclude": "tests",
+    "examples": "examples/*/*.ino",
+    "frameworks": "arduino",
+    "platforms": [
+        "atmelavr",
+        "espressif8266",
+        "espressif32"
+    ]
 }
