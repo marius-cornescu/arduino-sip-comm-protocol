@@ -89,11 +89,10 @@ void RtznCommProtocol::actOnPollMessage() {
 	this->__logDebug("actOnPollMessage: Send data to PARTNER");
 
 	// Send data to PARTNER
-	char payload[RtznCommProtocol::_msgSize - 2];
-	memset(payload, 0, RtznCommProtocol::_msgSize - 2);
+	char payload[RtznCommProtocol::_msgSize - 1];
+	memset(payload, 0, RtznCommProtocol::_msgSize - 1);
 	this->_PrepareMessageToSendFunction(payload);
-	byte payloadSize = sizeof(payload) / sizeof(char);
-	this->sendMessage(RtznCommProtocol::_Command_PUSH, payload, payloadSize);
+	this->sendMessage(RtznCommProtocol::_Command_PUSH, payload, RtznCommProtocol::_msgSize - 1);
 }
 //==================================================================================================
 void RtznCommProtocol::actOnPushPollMessage() {
