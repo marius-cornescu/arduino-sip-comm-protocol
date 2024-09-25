@@ -104,6 +104,19 @@ void RtznCommProtocol::actOnPushPollMessage() {
 //==================================================================================================
 
 //==================================================================================================
+void RtznCommProtocol::sendPollMessage() {
+	/* Ask PARTNER for status */
+	/* The body of the request is empty */
+	this->__logDebug("sendPollMessage: Ask data from PARTNER");
+
+	// Send empty data to PARTNER
+	char payload[RtznCommProtocol::_msgSize - 1];
+	memset(payload, 0, RtznCommProtocol::_msgSize - 1);
+	this->sendMessage(RtznCommProtocol::_Command_POLL, payload, RtznCommProtocol::_msgSize - 1);
+}
+//==================================================================================================
+
+//==================================================================================================
 bool RtznCommProtocol::isHaveToPublish() {
 	return this->haveToPublish;
 }

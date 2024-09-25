@@ -43,6 +43,8 @@ public:
 	void actOnPollMessage();
 	void actOnPushPollMessage();
 
+	void sendPollMessage();
+
 	bool isHaveToPublish();
 	void setHaveToPublish(bool haveToPublish);
 
